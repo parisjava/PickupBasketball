@@ -1,0 +1,23 @@
+{
+  "name": "pickupbasketball",
+  "version": "1.0.0",
+  "description": "a public court reservation system",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/parisjava/PickupBasketball.git"
+  },
+  "author": "varun",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/parisjava/PickupBasketball/issues"
+  },
+  "homepage": "https://github.com/parisjava/PickupBasketball#readme",
+  "dependencies": {
+    "express.js": "^1.0.0",
+    "socket.io": "^2.1.1"
+  }
+}
