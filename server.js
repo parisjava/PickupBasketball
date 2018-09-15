@@ -13,6 +13,7 @@ var clientParks = {};
 app.use(express.static('public'));
 
 app.get('/', function(request, response) {
+    response.sendFile(__dirname + '/public/index.html');
 });
 
 var disconnectFromPark(client) {
@@ -57,20 +58,27 @@ function getPark(client, park) {
 
     courts = {};
 
+    courts.courts = [];
+
+    
+
     db.serialize(function() {
 	db.each("SELECT * FROM Parks WHERE park=" + park, (err, row) => {
 	    if (err) {
 		throw err;
 	    }
 	    if (courts[row.Court] == null) {
+		courts.courts.push(row.Court);
 		courts[row.Court] = {};
+		courts[row.Court].times = [];
 	    }
 
-	    if (courts[row.Court][row.Time] == null) {
-		courts[row.Court][row.Time] = [];
+	    if (courts[row.Court][row.Time + ""] == null) {
+		courts[row.Court][row.Time + ""] = [];
+		courts[row.Court].times.push(row.Time + "");
 	    }
 
-	    courts[row.Court][row.Time].push(row.Name);
+            courts[row.Court][row.Time + ""].push(row.Name);
 	});
     });
 
@@ -80,7 +88,7 @@ function getPark(client, park) {
 	}
     });
     
-    io.to(client.id).emit(courts);
+    io.to(client.id).emit("slots", courts);
     clientParks[client.id] = park;
     client.join(park);
 }
