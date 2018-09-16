@@ -4,7 +4,7 @@ var socket = io();
 var courtArray = [];
 var park = "Druid";
 var name = "Anon";
-function createButton(park, court, time, name) {
+function createButton(park, court, time) {
     console.log(name);
     var button = document.createElement("input");
     button.type = "button";
@@ -23,7 +23,7 @@ function generateRows(table) {
 	for (var x = 1; x <= 10; x++) {
 	    td = document.createElement('td');
 	    var div = document.createElement('div');
-	    var button = createButton(park,table.id, (12 + y) % 12, name);
+	    var button = createButton(park,table.id, (12 + y) % 12);
 	    var nameSlot = document.createElement('div')
 	    nameSlot.appendChild(document.createTextNode("Name"));
 	    nameSlot.id = "name:" + table.id + ":" + x + ":" + y;
