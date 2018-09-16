@@ -103,4 +103,6 @@ socket.on("playerJoined",function(park, court, time, name) {
 });
 
 
-socket.emit("getPark", "Druid");
+function request() {
+    socket.emit("getPark", park);
+}
