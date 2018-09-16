@@ -3,7 +3,7 @@ var socket = io();
 
 var courtArray = [];
 var park = "Druid";
-var name = "Varun";
+var name = "Anon";
 function createButton(park, court, time, name) {
     console.log(name);
     var button = document.createElement("input");
@@ -39,6 +39,9 @@ function generateRows(table) {
 }
 function makeTable(court) {
     var table = document.createElement("table");
+    var caption = document.createElement("caption");
+    caption.innerHTML = court;
+    table.appendChild(caption);
     table.id = court;
     var trHead = document.createElement('tr');
     var td = document.createElement('td');
@@ -57,7 +60,7 @@ function makeTable(court) {
 
 function setRow(court, time, slots) {
     var table = document.getElementById(court);
-    var entries = table.children[time].children;
+    var entries = table.getElementsByTagName("tr")[time].children;
     console.log(entries);
     for (var x = 0; x < slots.length; x++) {
 	console.log(entries[x + 1].children[0].children[0]);
@@ -84,7 +87,7 @@ socket.on("spotFilled", function() {
 
 function addMember(court, time, park, name) {
     var table = document.getElementById(court);
-    var entries = table.children[time].children;
+    var entries = table.getElementsByTagName("tr")[time].children;
     for (var x = 0; x < entries.length; x++) {
 	if (entries[x + 1].children[0].children[0].style.display != 'none') {
 	    entries[x + 1].children[0].children[0].style.display = 'none';
@@ -103,6 +106,15 @@ socket.on("playerJoined",function(park, court, time, name) {
 });
 
 
-function request() {
+function request(parkName) {
+    var tables = document.getElementById("tables");
+    while (tables.firstChild) {
+	tables.removeChild(tables.firstChild);
+    }
+    park = parkName
     socket.emit("getPark", park);
+}
+
+function setName() {
+    name = document.getElementById("nameField").value;
 }
