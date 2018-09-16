@@ -16,7 +16,7 @@ app.get('/', function(request, response) {
     response.sendFile(__dirname + '/public/index.html');
 });
 
-var disconnectFromPark(client) {
+function disconnectFromPark(client) {
     if (clientParks[client.id] == null) {
 	return;
     }
@@ -31,8 +31,9 @@ io.on('connection', function(client) {
 	getPark(client, park);
     });
 
-    client.on('requestSlot', function(park, court, timeSlot) {
-	setSlot(client, park, timeSlot);
+    client.on('requestSlot', function(park, court, timeSlot, name) {
+	console.log(name);
+	setSlot(client, park, court, timeSlot, name);
     });
 
     client.on('cancelSlot', function(park, timeSlot) {
@@ -44,11 +45,29 @@ io.on('connection', function(client) {
     
 });
 
+function addCourts(courts, row) {
+    console.log(row.Court);
+    if (courts[row.Court] == undefined) {
+	courts.courts.push(row.Court);
+	courts[row.Court] = {};
+	courts[row.Court].times = [];
+    }
+    
+    console.log(courts[row.Court]);
+    
+    if (courts[row.Court][row.Time + ""] == undefined) {
+	courts[row.Court][row.Time + ""] = [];
+	courts[row.Court].times.push(row.Time + "");
+    }
+    
+    console.log(courts[row.Court]);
+    
+    courts[row.Court][row.Time + ""].push(row.Name);
+}
+
 function getPark(client, park) {
-    error = null;
-    let db = new sqlite3.Database('./test.db', sqlite3.OPEN_READWRITE, function(error) {
+    let db = new sqlite3.Database('./test.db', sqlite3.OPEN_READWRITE, function(err) {
 	if(err) {
-	    error = err;
 	    console.error(err.message);
 	    io.to(client.id).emit("getParkFailed");
 	    return;
@@ -63,22 +82,16 @@ function getPark(client, park) {
     
 
     db.serialize(function() {
-	db.each("SELECT * FROM Parks WHERE park=" + park, (err, row) => {
+	db.all("SELECT * FROM Parks WHERE Park=?", park, (err, rows) => {
 	    if (err) {
 		throw err;
 	    }
-	    if (courts[row.Court] == null) {
-		courts.courts.push(row.Court);
-		courts[row.Court] = {};
-		courts[row.Court].times = [];
-	    }
-
-	    if (courts[row.Court][row.Time + ""] == null) {
-		courts[row.Court][row.Time + ""] = [];
-		courts[row.Court].times.push(row.Time + "");
-	    }
-
-            courts[row.Court][row.Time + ""].push(row.Name);
+	    rows.forEach(function(row) {
+		addCourts(courts, row);
+	    });
+	    io.to(client.id).emit("slots", courts);
+	    clientParks[client.id] = park;
+	    client.join(park);
 	});
     });
 
@@ -87,16 +100,11 @@ function getPark(client, park) {
 	    throw err;
 	}
     });
-    
-    io.to(client.id).emit("slots", courts);
-    clientParks[client.id] = park;
-    client.join(park);
 }
 
-function setSlot(client, park, court, time) {
-    let db = new sqlite3.Database('./test.db', sqlite3.OPEN_READWRITE, function(error) {
+function setSlot(client, park, court, time, name) {
+    let db = new sqlite3.Database('./test.db', sqlite3.OPEN_READWRITE, function(err) {
 	if(err) {
-	    throw err;
 	    console.error(err.message);
 	    io.to(client.id).emit("getParkFailed");
 	    return;
@@ -104,25 +112,29 @@ function setSlot(client, park, court, time) {
 	console.log("Connection created");
     });
     
-    db.each('SELECT COUNT(*) AS count FROM PARKS WHERE Park=?, Court=?, Time=?',
+    db.each('SELECT COUNT(*) AS count FROM PARKS WHERE Park=? And Court=? And Time=?',
 		park, court, time, function(err, row) {
 		    if (err != null) {
-			throw err;
+			console.log(err);
+			return;
                     }
 
-		    if (row.count == 10) {
+         	    if (row.count >= 10) {
 			io.to(client.id).emit("spotFilled");
 			return;
 	            }
 
-		    addEntry(db, client, park, court, time)
+		    addEntry(db, client, park, court, time, name)
 		});
     db.close(function(err) {
-	throw err;
+	if (err != null) {
+	    console.error(err);
+	}
     });
 }
 
 function addEntry(db, client, park, court, time, name) {
+    console.log(name);
     db.run("INSERT INTO Parks (Park, Court, Time, Name) VALUES (?, ?, ?, ?)",
 	   park, court, time, name, function(err) {
 	       if (err) {
@@ -130,8 +142,8 @@ function addEntry(db, client, park, court, time, name) {
 		   return;
 	       }
 
-	       io.to(client.id).emit("reservationSuccess");
-	       io.to(clientParks[client.id]).emit("playerJoined", court, time, name);
+	       io.to(client.id).emit("reservationSuccess", court, time, park);
+	       client.broadcast.to(clientParks[client.id]).emit("playerJoined", park, court, time, name);
 	       
     });
 }
